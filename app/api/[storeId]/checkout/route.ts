@@ -1,7 +1,4 @@
-import Stripe from "stripe";
 import { NextResponse } from "next/server";
-
-import { stripe } from "@/lib/stripe";
 import prismadb from "@/lib/prismadb";
 
 const corsHeaders = {
@@ -18,66 +15,54 @@ export async function POST(
   req: Request,
   { params }: { params: { storeId: string } }
 ) {
-  const { productIds } = await req.json();
+  try {
+    const { productsId } = await req.json();
 
-  if (!productIds || productIds.length === 0) {
-    return new NextResponse("Product ids are required", { status: 400 });
-  }
-
-  const products = await prismadb.product.findMany({
-    where: {
-      id: {
-        in: productIds
-      }
+    if (!productsId || productsId.length === 0) {
+      return new NextResponse("Product ids are required", { status: 400, headers: corsHeaders });
     }
-  });
 
-  const line_items: Stripe.Checkout.SessionCreateParams.LineItem[] = [];
-
-  products.forEach((product) => {
-    line_items.push({
-      quantity: 1,
-      price_data: {
-        currency: 'USD',
-        product_data: {
-          name: product.name,
-        },
-        unit_amount: product.price.toNumber() * 100
+    // Fetch the products
+    const products = await prismadb.product.findMany({
+      where: {
+        id: {
+          in: productsId
+        }
       }
     });
-  });
 
-  const order = await prismadb.order.create({
-    data: {
-      storeId: params.storeId,
-      isPaid: false,
-      orderItems: {
-        create: productIds.map((productId: string) => ({
-          product: {
-            connect: {
-              id: productId
-            }
-          }
-        }))
-      }
+    if (products.length === 0) {
+      return new NextResponse("No products found with the given ids", { status: 404, headers: corsHeaders });
     }
-  });
 
-  const session = await stripe.checkout.sessions.create({
-    line_items,
-    mode: 'payment',
-    billing_address_collection: 'required',
-    phone_number_collection: {
-      enabled: true,
-    },
-    success_url: `${process.env.FRONTEND_STORE_URL}/cart?success=1`,
-    cancel_url: `${process.env.FRONTEND_STORE_URL}/cart?canceled=1`,
-    metadata: {
-      orderId: order.id
-    },
-  });
+    // Create the order
+    const order = await prismadb.order.create({
+      data: {
+        storeId: params.storeId,
+        isPaid: false,
+        orderItems: {
+          create: productsId.map((productId: string) => ({
+            product: {
+              connect: {
+                id: productId
+              }
+            }
+          }))
+        }
+      }
+    });
 
-  return NextResponse.json({ url: session.url }, {
-    headers: corsHeaders
-  });
-};
+    // Return success response (could be a redirect URL to a payment page)
+    return NextResponse.json(
+      {
+        message: "Order created successfully",
+        orderId: order.id,
+        products,
+      },
+      { status: 201, headers: corsHeaders }
+    );
+  } catch (error) {
+    console.error("Error creating order:", error);
+    return new NextResponse("Internal Server Error", { status: 500, headers: corsHeaders });
+  }
+}
