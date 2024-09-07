@@ -11,7 +11,7 @@ interface OrderFormProps {
   initialData: Order & {
     orderItems: (OrderItem & {
       product: Product & { price: number }; // Ensure price is of type number
-      totalItemAmount: number; // Assuming you have this field
+      totalItemAmount: number | null; // Assuming you have this field
     })[];
   };
 };
