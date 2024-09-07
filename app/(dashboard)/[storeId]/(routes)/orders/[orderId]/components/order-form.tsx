@@ -11,20 +11,15 @@ interface OrderFormProps {
   initialData: Order & {
     orderItems: (OrderItem & {
       product: Product & { price: number }; // Ensure price is of type number
+      totalItemAmount: number; // Assuming you have this field
     })[];
   };
 };
 
 export const OrdersForm: React.FC<OrderFormProps> = ({ initialData }) => {
-  // Calculate the total price by summing up all product prices
+  // Calculate the total price by summing up all totalItemAmounts
   const totalPrice = initialData.orderItems.reduce((acc, item) => {
-    const itemPrice = item.product.price;
-
-    if (isNaN(itemPrice)) {
-      console.error(`Invalid price for product ${item.productId}: ${item.product.price}`);
-    }
-
-    return acc + itemPrice;
+    return acc + (item.totalItemAmount || 0); // Ensure totalItemAmount is not undefined
   }, 0);
 
   // Format total price with commas
@@ -38,7 +33,7 @@ export const OrdersForm: React.FC<OrderFormProps> = ({ initialData }) => {
       <Card className="overflow-hidden">
         <CardHeader className="flex flex-row items-start bg-muted/50">
           <div className="gap-0.5">
-          <div className="mb-6">
+            <div className="mb-6">
               <CardTitle>{initialData.companyName}</CardTitle>
               <CardDescription>{initialData.address}</CardDescription>
               <CardDescription>{initialData.contactNumber}</CardDescription>
@@ -56,7 +51,7 @@ export const OrdersForm: React.FC<OrderFormProps> = ({ initialData }) => {
               </Button>
             </CardTitle>
             <CardTitle className="group flex items-center gap-2 text-md">
-               {initialData.poNumber}
+              {initialData.poNumber}
               <Button
                 size="icon"
                 variant="outline"
@@ -68,7 +63,6 @@ export const OrdersForm: React.FC<OrderFormProps> = ({ initialData }) => {
               </Button>
             </CardTitle>
             <CardDescription>Date: {new Date(initialData.createdAt).toLocaleDateString()}</CardDescription>
-
           </div>
           <div className="ml-auto flex items-center gap-1">
             <Button size="sm" variant="outline" className="h-8 gap-1">
@@ -96,12 +90,15 @@ export const OrdersForm: React.FC<OrderFormProps> = ({ initialData }) => {
             <div className="font-semibold">Order Details</div>
             <ul className="grid gap-3">
               {initialData.orderItems.map((item) => (
-                <li key={item.productId} className="flex items-center justify-between">
-                  {/* Display the product name and price */}
+                <li key={item.productId} className="flex">
+                  {/* Display the product name and quantity */}
                   <span className="text-muted-foreground">
                     {item.product.name}
                   </span>
-                  <span>₱ {item.product.price.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                  <span className="ml-2 text-muted-foreground"> ({item.quantity})</span>
+                  <span className="flex flex-row font-semibold ml-auto items-end">
+                    {item.totalItemAmount?.toLocaleString('en-US', { style: 'currency', currency: 'PHP' })}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -116,7 +113,7 @@ export const OrdersForm: React.FC<OrderFormProps> = ({ initialData }) => {
           </div>
           <Separator className="my-4" />
           <div>
-          <ul className="grid gap-3">
+            <ul className="grid gap-3">
               <li className="flex items-center justify-between font-semibold">
                 <span className="text-muted-foreground">Delivery Address / Contact Person Information</span>
               </li>

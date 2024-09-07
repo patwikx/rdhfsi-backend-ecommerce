@@ -16,14 +16,23 @@ export async function POST(
   { params }: { params: { storeId: string } }
 ) {
   try {
-    const { productsId, companyName, poNumber, address, contactNumber } = await req.json();
+    const { orderItems, companyName, poNumber, address, contactNumber } = await req.json();
 
-    // Validate product IDs
+    // Extract productsId, quantities, and totalItemAmounts from orderItems
+    const productsId = orderItems.map((item: any) => item.productId);
+    const quantities = orderItems.map((item: any) => item.quantity);
+    const totalItemAmounts = orderItems.map((item: any) => item.totalItemAmount);
+
+    // Validate inputs
     if (!productsId || productsId.length === 0) {
-      return new NextResponse("Product ids are required", { status: 400, headers: corsHeaders });
+      return new NextResponse("Product IDs are required", { status: 400, headers: corsHeaders });
     }
-
-    // Validate delivery information
+    if (!quantities || quantities.length !== productsId.length) {
+      return new NextResponse("Quantities must be provided for all product IDs", { status: 400, headers: corsHeaders });
+    }
+    if (!totalItemAmounts || totalItemAmounts.length !== productsId.length) {
+      return new NextResponse("Total item amounts must be provided for all product IDs", { status: 400, headers: corsHeaders });
+    }
     if (!companyName || !poNumber || !address || !contactNumber) {
       return new NextResponse("All delivery information fields are required", { status: 400, headers: corsHeaders });
     }
@@ -38,10 +47,10 @@ export async function POST(
     });
 
     if (products.length === 0) {
-      return new NextResponse("No products found with the given ids", { status: 404, headers: corsHeaders });
+      return new NextResponse("No products found with the given IDs", { status: 404, headers: corsHeaders });
     }
 
-    // Create the order with delivery information
+    // Create the order with delivery information, quantities, and total item amounts
     const order = await prismadb.order.create({
       data: {
         storeId: params.storeId,
@@ -51,18 +60,19 @@ export async function POST(
         contactNumber,
         address,
         orderItems: {
-          create: productsId.map((productId: string) => ({
+          create: productsId.map((productId: string, index: number) => ({
             product: {
               connect: {
                 id: productId
               }
-            }
+            },
+            quantity: quantities[index].toString(), // Convert quantity to string
+            totalItemAmount: totalItemAmounts[index], // Store the totalItemAmount in the database
           }))
         }
       }
     });
 
-    // Return success response (could be a redirect URL to a payment page)
     return NextResponse.json(
       {
         message: "Order created successfully",
