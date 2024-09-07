@@ -61,7 +61,7 @@ export const OrdersForm: React.FC<OrderFormProps> = ({ initialData }) => {
                 size="icon"
                 variant="outline"
                 className="h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
-                onClick={() => navigator.clipboard.writeText(initialData.id)}
+                onClick={() => navigator.clipboard.writeText(initialData.poNumber)}
               >
                 <Copy className="h-3 w-3" />
                 <span className="sr-only">Copy PO #</span>
