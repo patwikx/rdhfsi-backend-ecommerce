@@ -16,10 +16,16 @@ export async function POST(
   { params }: { params: { storeId: string } }
 ) {
   try {
-    const { productsId } = await req.json();
+    const { productsId, companyName, poNumber, address, contactNumber } = await req.json();
 
+    // Validate product IDs
     if (!productsId || productsId.length === 0) {
       return new NextResponse("Product ids are required", { status: 400, headers: corsHeaders });
+    }
+
+    // Validate delivery information
+    if (!companyName || !poNumber || !address || !contactNumber) {
+      return new NextResponse("All delivery information fields are required", { status: 400, headers: corsHeaders });
     }
 
     // Fetch the products
@@ -35,11 +41,15 @@ export async function POST(
       return new NextResponse("No products found with the given ids", { status: 404, headers: corsHeaders });
     }
 
-    // Create the order
+    // Create the order with delivery information
     const order = await prismadb.order.create({
       data: {
         storeId: params.storeId,
         isPaid: false,
+        companyName,
+        poNumber,
+        contactNumber,
+        address,
         orderItems: {
           create: productsId.map((productId: string) => ({
             product: {
@@ -58,6 +68,12 @@ export async function POST(
         message: "Order created successfully",
         orderId: order.id,
         products,
+        deliveryInfo: {
+          companyName,
+          poNumber,
+          address,
+          contactNumber,
+        }
       },
       { status: 201, headers: corsHeaders }
     );
