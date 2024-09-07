@@ -56,6 +56,8 @@ model Product {
   store      Store       @relation("StoreToProduct", fields: [storeId], references: [id])
   categoryId String // Foreign Key to Category
   category   Category    @relation("CategoryToProduct", fields: [categoryId], references: [id])
+  barCode    String?
+  itemDesc   String?
   name       String
   price      Float
   isFeatured Boolean     @default(false)
