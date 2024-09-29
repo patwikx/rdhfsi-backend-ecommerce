@@ -5,7 +5,8 @@ import { ColumnDef } from "@tanstack/react-table"
 import { CellAction } from "./cell-action"
 
 export type ProductColumn = {
-  id: string
+  id: string;
+  barCode: string | null;
   name: string;
   price: string;
   category: string;
@@ -18,16 +19,12 @@ export type ProductColumn = {
 
 export const columns: ColumnDef<ProductColumn>[] = [
   {
+    accessorKey: "barCode",
+    header: "Barcode",
+  },
+  {
     accessorKey: "name",
     header: "Name",
-  },
-  {
-    accessorKey: "isArchived",
-    header: "Archived",
-  },
-  {
-    accessorKey: "isFeatured",
-    header: "Featured",
   },
   {
     accessorKey: "price",
@@ -52,8 +49,12 @@ export const columns: ColumnDef<ProductColumn>[] = [
     )
   },
   {
-    accessorKey: "createdAt",
-    header: "Date",
+    accessorKey: "isArchived",
+    header: "Active?",
+  },
+  {
+    accessorKey: "isFeatured",
+    header: "Featured",
   },
   {
     id: "actions",

@@ -8,6 +8,18 @@ datasource db {
   relationMode = "prisma"
 }
 
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  storeId   String
+  store     Store    @relation("StoreToUser", fields: [storeId], references: [id])
+
+  @@index([storeId])
+}
+
 model Store {
   id         String      @id @default(uuid())
   name       String
@@ -18,6 +30,7 @@ model Store {
   sizes      Size[]      @relation("StoreToSize")
   colors     Color[]     @relation("StoreToColor")
   orders     Order[]     @relation("StoreToOrder")
+  users      User[]      @relation("StoreToUser")
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
 }
@@ -83,6 +96,8 @@ model Order {
   store         Store       @relation("StoreToOrder", fields: [storeId], references: [id])
   orderItems    OrderItem[] // Relation to OrderItem model
   isPaid        Boolean     @default(false)
+  clientName    String      @default("")
+  clientEmail   String      @default("")
   companyName   String      @default("")
   poNumber      String      @default("")
   contactNumber String      @default("")

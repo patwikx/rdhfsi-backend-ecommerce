@@ -39,7 +39,7 @@ const OrderDetailsPage = async ({
 
   return ( 
     <div className="flex-col">
-      <CardTitle className="mt-6 ml-8 font-bold text-xl">Order Details</CardTitle>
+      <CardTitle className="mt-6 ml-8 font-bold text-xl">Delivery Receipt</CardTitle>
       <div className="flex-1 space-y-4 p-8 pt-6">
         <OrdersForm initialData={ordersWithFormattedPrice} />
       </div>

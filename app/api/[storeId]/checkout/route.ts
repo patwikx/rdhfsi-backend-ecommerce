@@ -16,7 +16,7 @@ export async function POST(
   { params }: { params: { storeId: string } }
 ) {
   try {
-    const { orderItems, companyName, poNumber, address, contactNumber } = await req.json();
+    const { orderItems, companyName, poNumber, address, contactNumber, clientName, clientEmail } = await req.json();
 
     // Extract productsId, quantities, and totalItemAmounts from orderItems
     const productsId = orderItems.map((item: any) => item.productId);
@@ -55,6 +55,8 @@ export async function POST(
       data: {
         storeId: params.storeId,
         isPaid: false,
+        clientEmail,
+        clientName,
         companyName,
         poNumber,
         contactNumber,
