@@ -1,32 +1,47 @@
-import { redirect } from 'next/navigation';
-import { auth } from '@clerk/nextjs';
+import { redirect } from 'next/navigation'
+import { auth } from '@/auth'
 
-import prismadb from '@/lib/prismadb';
+import { StoreModal } from '@/components/modals/store-modal'
+import prismadb from '@/lib/prismadb'
 
-export default async function SetupLayout({
+export default async function RootLayout({
   children,
+  params
 }: {
   children: React.ReactNode
+  params: { storeId: string }
 }) {
-  const { userId } = auth();
+  const session = await auth()
 
-  if (!userId) {
-    redirect('/sign-in');
+  if (!session?.user) {
+    redirect('/auth/sign-in')
   }
 
-  const store = await prismadb.store.findFirst({
+  const user = await prismadb.user.findUnique({
     where: {
-      userId,
+      id: session.user.id
+    },
+    include: {
+      store: true
     }
-  });
+  })
 
-  if (store) {
-    redirect(`/${store.id}`);
-  };
+  if (!user) {
+    redirect('/auth/sign-in')
+  }
 
-  return (
-    <>
-      {children}
-    </>
-  );
-};
+  if (user.store && user.store.id !== params.storeId) {
+    redirect(`/${user.store.id}`)
+  }
+
+  if (!user.store) {
+    return (
+      <>
+        <StoreModal />
+        {children}
+      </>
+    )
+  }
+
+  return <>{children}</>
+}

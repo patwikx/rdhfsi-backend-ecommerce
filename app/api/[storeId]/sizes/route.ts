@@ -1,20 +1,21 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs';
+
 
 import prismadb from '@/lib/prismadb';
+import { auth } from '@/auth';
  
 export async function POST(
   req: Request,
   { params }: { params: { storeId: string } }
 ) {
   try {
-    const { userId } = auth();
+    const session = await auth()
 
     const body = await req.json();
 
     const { name, value } = body;
 
-    if (!userId) {
+    if (!session?.user?.id) {
       return new NextResponse("Unauthenticated", { status: 403 });
     }
 
@@ -30,14 +31,12 @@ export async function POST(
       return new NextResponse("Store id is required", { status: 400 });
     }
 
-    const storeByUserId = await prismadb.store.findFirst({
-      where: {
-        id: params.storeId,
-        userId
-      }
+    const user = await prismadb.user.findUnique({
+      where: { id: session.user.id },
+      include: { store: true }
     });
 
-    if (!storeByUserId) {
+    if (!user) {
       return new NextResponse("Unauthorized", { status: 405 });
     }
 

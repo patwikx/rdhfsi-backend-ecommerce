@@ -1,20 +1,18 @@
-import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs";
-
+import { auth } from "@/auth";
 import prismadb from "@/lib/prismadb";
-
+import { NextResponse } from "next/server";
 
 export async function PATCH(
   req: Request,
   { params }: { params: { storeId: string } }
 ) {
   try {
-    const { userId } = auth();
+    const session = await auth()
     const body = await req.json();
 
     const { name } = body;
 
-    if (!userId) {
+    if (!session?.user?.id) {
       return new NextResponse("Unauthenticated", { status: 403 });
     }
 
@@ -26,32 +24,39 @@ export async function PATCH(
       return new NextResponse("Store id is required", { status: 400 });
     }
 
-    const store = await prismadb.store.updateMany({
+    const user = await prismadb.user.findUnique({
+      where: { id: session.user.id },
+      include: { store: true }
+    });
+
+    if (!user || !user.store || user.store.id !== params.storeId) {
+      return new NextResponse("Unauthorized", { status: 403 });
+    }
+
+    const updatedStore = await prismadb.store.update({
       where: {
         id: params.storeId,
-        userId,
       },
       data: {
         name
       }
     });
   
-    return NextResponse.json(store);
+    return NextResponse.json(updatedStore);
   } catch (error) {
     console.log('[STORE_PATCH]', error);
     return new NextResponse("Internal error", { status: 500 });
   }
 };
 
-
 export async function DELETE(
   req: Request,
   { params }: { params: { storeId: string } }
 ) {
   try {
-    const { userId } = auth();
+    const session = await auth()
 
-    if (!userId) {
+    if (!session?.user?.id) {
       return new NextResponse("Unauthenticated", { status: 403 });
     }
 
@@ -59,14 +64,28 @@ export async function DELETE(
       return new NextResponse("Store id is required", { status: 400 });
     }
 
-    const store = await prismadb.store.deleteMany({
+    const user = await prismadb.user.findUnique({
+      where: { id: session.user.id },
+      include: { store: true }
+    });
+
+    if (!user || !user.store || user.store.id !== params.storeId) {
+      return new NextResponse("Unauthorized", { status: 403 });
+    }
+
+    const deletedStore = await prismadb.store.delete({
       where: {
         id: params.storeId,
-        userId
       }
     });
+
+    // Update the user to remove the store association
+    await prismadb.user.update({
+      where: { id: session.user.id },
+      data: { storeId: null }
+    });
   
-    return NextResponse.json(store);
+    return NextResponse.json(deletedStore);
   } catch (error) {
     console.log('[STORE_DELETE]', error);
     return new NextResponse("Internal error", { status: 500 });

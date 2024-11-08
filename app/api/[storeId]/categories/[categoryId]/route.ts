@@ -1,7 +1,7 @@
+import { auth } from "@/auth";
+import prismadb from "@/lib/db";
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs";
 
-import prismadb from "@/lib/prismadb";
 
 export async function GET(
   req: Request,
@@ -33,9 +33,9 @@ export async function DELETE(
   { params }: { params: { categoryId: string, storeId: string } }
 ) {
   try {
-    const { userId } = auth();
+    const session = await auth();
 
-    if (!userId) {
+    if (!session?.user?.id) {
       return new NextResponse("Unauthenticated", { status: 403 });
     }
 
@@ -43,14 +43,12 @@ export async function DELETE(
       return new NextResponse("Category id is required", { status: 400 });
     }
 
-    const storeByUserId = await prismadb.store.findFirst({
-      where: {
-        id: params.storeId,
-        userId,
-      }
+    const user = await prismadb.user.findUnique({
+      where: { id: session.user.id },
+      include: { store: true }
     });
 
-    if (!storeByUserId) {
+    if (!user) {
       return new NextResponse("Unauthorized", { status: 405 });
     }
 
@@ -73,13 +71,13 @@ export async function PATCH(
   { params }: { params: { categoryId: string, storeId: string } }
 ) {
   try {   
-    const { userId } = auth();
+    const session = await auth();
 
     const body = await req.json();
     
     const { name, billboardId } = body;
     
-    if (!userId) {
+    if (!session?.user?.id) {
       return new NextResponse("Unauthenticated", { status: 403 });
     }
 
@@ -95,14 +93,12 @@ export async function PATCH(
       return new NextResponse("Category id is required", { status: 400 });
     }
 
-    const storeByUserId = await prismadb.store.findFirst({
-      where: {
-        id: params.storeId,
-        userId,
-      }
+    const user = await prismadb.user.findUnique({
+      where: { id: session.user.id },
+      include: { store: true }
     });
 
-    if (!storeByUserId) {
+    if (!user) {
       return new NextResponse("Unauthorized", { status: 405 });
     }
 
